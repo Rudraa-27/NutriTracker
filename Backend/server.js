@@ -20,9 +20,34 @@ const PORT = process.env.PORT || 5231;
 
 connectDB();
 
+const isLocalDevelopmentOrigin = (origin) => {
+  if (process.env.NODE_ENV === "production") {
+    return false;
+  }
+
+  try {
+    const { hostname, protocol } = new URL(origin);
+
+    return protocol === "http:" &&
+      ["localhost", "127.0.0.1", "[::1]"].includes(hostname);
+  } catch {
+    return false;
+  }
+};
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL,
+    origin: (origin, callback) => {
+      if (
+        !origin ||
+        origin === process.env.CLIENT_URL ||
+        isLocalDevelopmentOrigin(origin)
+      ) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`Origin ${origin} is not allowed by CORS`));
+    },
     credentials: true
   })
 );
