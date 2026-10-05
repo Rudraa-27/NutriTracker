@@ -8,17 +8,45 @@ const generateToken = (userId) => {
   return jwt.sign(
     { userId },
     process.env.JWT_SECRET,
-    { expiresIn: "7d" }
+    {
+      expiresIn: "7d"
+    }
   );
+};
+
+const isValidEmail = (email) => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 };
 
 export const register = async (req, res, next) => {
   try {
-    const { name, email, password } = req.body;
+    const {
+      name,
+      email,
+      password
+    } = req.body;
 
-    if (!name || !email || !password) {
+    if (!name?.trim()) {
       return res.status(400).json({
-        message: "Name, email and password are required"
+        message: "Name is required"
+      });
+    }
+
+    if (!email?.trim()) {
+      return res.status(400).json({
+        message: "Email is required"
+      });
+    }
+
+    if (!isValidEmail(email.trim())) {
+      return res.status(400).json({
+        message: "Please provide a valid email address"
+      });
+    }
+
+    if (!password) {
+      return res.status(400).json({
+        message: "Password is required"
       });
     }
 
@@ -28,7 +56,9 @@ export const register = async (req, res, next) => {
       });
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedEmail = email
+      .trim()
+      .toLowerCase();
 
     const existingUser = await User.findOne({
       email: normalizedEmail
@@ -36,11 +66,15 @@ export const register = async (req, res, next) => {
 
     if (existingUser) {
       return res.status(409).json({
-        message: "An account with this email already exists"
+        message:
+          "An account with this email already exists"
       });
     }
 
-    const passwordHash = await bcrypt.hash(password, 12);
+    const passwordHash = await bcrypt.hash(
+      password,
+      12
+    );
 
     const user = await User.create({
       name: name.trim(),
@@ -52,10 +86,13 @@ export const register = async (req, res, next) => {
       user: user._id
     });
 
-    const token = generateToken(user._id.toString());
+    const token = generateToken(
+      user._id.toString()
+    );
 
     res.status(201).json({
       token,
+
       user: {
         id: user._id,
         name: user.name,
@@ -69,9 +106,20 @@ export const register = async (req, res, next) => {
 
 export const login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const {
+      email,
+      password
+    } = req.body;
 
-    const normalizedEmail = email?.toLowerCase().trim();
+    if (!email?.trim() || !password) {
+      return res.status(400).json({
+        message: "Email and password are required"
+      });
+    }
+
+    const normalizedEmail = email
+      .trim()
+      .toLowerCase();
 
     const user = await User.findOne({
       email: normalizedEmail
@@ -94,10 +142,13 @@ export const login = async (req, res, next) => {
       });
     }
 
-    const token = generateToken(user._id.toString());
+    const token = generateToken(
+      user._id.toString()
+    );
 
     res.json({
       token,
+
       user: {
         id: user._id,
         name: user.name,
@@ -111,9 +162,17 @@ export const login = async (req, res, next) => {
 
 export const getMe = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id).select(
+    const user = await User.findById(
+      req.user.id
+    ).select(
       "_id name email createdAt"
     );
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User account not found"
+      });
+    }
 
     res.json({
       user

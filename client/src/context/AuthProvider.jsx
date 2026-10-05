@@ -43,6 +43,18 @@ export const AuthProvider = ({ children }) => {
     restoreSession();
   }, []);
 
+  useEffect(() => {
+    const handleForcedLogout = () => {
+      setUser(null);
+    };
+
+    window.addEventListener("nutritrack:logout", handleForcedLogout);
+
+    return () => {
+      window.removeEventListener("nutritrack:logout", handleForcedLogout);
+    };
+  }, []);
+
   const login = async (credentials) => {
     const data = await loginUser(credentials);
 
